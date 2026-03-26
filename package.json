@@ -1,0 +1,8 @@
+{
+  "name": "huntly",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "postinstall": "mkdir -p node_modules/@huntly && ln -sf ../../packages/shared node_modules/@huntly/shared"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "huntly",
+    },
+    "packages/shared": {
+      "name": "@huntly/shared",
+      "version": "0.0.1",
+      "dependencies": {
+        "zod": "^3.24",
+      },
+    },
+  },
+  "packages": {
+    "@huntly/shared": ["@huntly/shared@workspace:packages/shared"],
+
+    "zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
+  }
+}
