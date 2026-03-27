@@ -9,9 +9,16 @@ interface Job {
   position: string;
   status: string;
   recruiterName: string | null;
+  location: string | null;
+  format: string | null;
+  notes: string | null;
   salaryMin: number | null;
   salaryMax: number | null;
   salaryCurrency: string | null;
+  contractType?: string | null;
+  salaryGross?: boolean | null;
+  source?: string | null;
+  nextStep?: string | null;
   updatedAt: string;
   tags: { id: number; name: string }[];
 }

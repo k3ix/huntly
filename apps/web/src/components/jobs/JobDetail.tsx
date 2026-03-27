@@ -27,6 +27,11 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+function fmtK(n: number): string {
+  const k = n / 1000;
+  return Number.isInteger(k) ? `${k}k` : `${k.toFixed(1)}k`;
+}
+
 export function JobDetail({ jobId, onClose }: JobDetailProps) {
   const { data: job } = useJob(jobId ?? 0);
   const updateJob = useUpdateJob();
@@ -60,15 +65,54 @@ export function JobDetail({ jobId, onClose }: JobDetailProps) {
     onClose();
   }
 
-  const salary =
-    job?.salaryMin || job?.salaryMax
-      ? [
-          job.salaryMin && `${Math.round(job.salaryMin / 1000)}k`,
-          job.salaryMax && `${Math.round(job.salaryMax / 1000)}k`,
-        ]
-          .filter(Boolean)
-          .join("-") +
-        ` ${job.salaryCurrency ?? ""}`
+  const extJob = job as typeof job & {
+    salaryPeriod?: string | null;
+    salaryType?: string | null;
+    salaryAsk?: number | null;
+    salaryAskCurrency?: string | null;
+    salaryFinal?: number | null;
+    salaryFinalCurrency?: string | null;
+    salaryNetMonthly?: number | null;
+    salaryNetCurrency?: string | null;
+    contractType?: string | null;
+    source?: string | null;
+    nextStep?: string | null;
+  } | undefined;
+
+  // Build offer line: "22k-26k PLN gross/mo B2B"
+  const offerLine = (() => {
+    if (!extJob?.salaryMin && !extJob?.salaryMax) return null;
+    const range =
+      extJob.salaryMin === extJob.salaryMax
+        ? fmtK(extJob.salaryMin!)
+        : [extJob.salaryMin && fmtK(extJob.salaryMin), extJob.salaryMax && fmtK(extJob.salaryMax)]
+            .filter(Boolean)
+            .join("-");
+    const currency = extJob.salaryCurrency ?? "";
+    const type = extJob.salaryType ?? null;
+    const period = extJob.salaryPeriod ? (extJob.salaryPeriod === "monthly" ? "mo" : "yr") : null;
+    const contract = extJob.contractType ? extJob.contractType.toUpperCase() : null;
+    return [
+      `${range} ${currency}`.trim(),
+      type,
+      period ? `/${period}` : null,
+      contract,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .replace(/ \//, "/");
+  })();
+
+  // Ask line: "5k EUR"
+  const askLine =
+    extJob?.salaryAsk
+      ? `${fmtK(extJob.salaryAsk)} ${extJob.salaryAskCurrency ?? ""}`.trim()
+      : null;
+
+  // Net line: "~3.8k EUR/mo net"
+  const netLine =
+    extJob?.salaryNetMonthly
+      ? `~${fmtK(extJob.salaryNetMonthly)} ${extJob.salaryNetCurrency ?? "EUR"}/mo net`
       : null;
 
   return (
@@ -105,10 +149,20 @@ export function JobDetail({ jobId, onClose }: JobDetailProps) {
                 </div>
               )}
 
-              {salary && (
+              {(offerLine || askLine || netLine) && (
                 <div>
                   <label className="text-xs text-muted-foreground">Salary</label>
-                  <p className="text-sm mt-0.5">{salary.trim()}</p>
+                  <div className="space-y-0.5 mt-0.5">
+                    {offerLine && (
+                      <p className="text-sm">Offer: {offerLine}</p>
+                    )}
+                    {askLine && (
+                      <p className="text-sm text-muted-foreground">Ask: {askLine}</p>
+                    )}
+                    {netLine && (
+                      <p className="text-sm font-medium">{netLine}</p>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -123,6 +177,29 @@ export function JobDetail({ jobId, onClose }: JobDetailProps) {
                 <div>
                   <label className="text-xs text-muted-foreground">Format</label>
                   <p className="text-sm mt-0.5">{capitalize(job.format)}</p>
+                </div>
+              )}
+
+              {extJob?.contractType && (
+                <div>
+                  <label className="text-xs text-muted-foreground">Contract Type</label>
+                  <p className="text-sm mt-0.5">{extJob.contractType.toUpperCase()}</p>
+                </div>
+              )}
+
+              {extJob?.source && (
+                <div>
+                  <label className="text-xs text-muted-foreground">Source</label>
+                  <p className="text-sm mt-0.5">
+                    {extJob.source.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </p>
+                </div>
+              )}
+
+              {extJob?.nextStep && (
+                <div>
+                  <label className="text-xs text-muted-foreground">Next Step</label>
+                  <p className="text-sm mt-0.5">{extJob.nextStep}</p>
                 </div>
               )}
 

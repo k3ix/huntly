@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { JOB_FORMATS } from "@huntly/shared";
+import { JOB_FORMATS, CONTRACT_TYPES, JOB_SOURCES, SALARY_PERIODS, SALARY_TYPES } from "@huntly/shared";
 import {
   Dialog,
   DialogContent,
@@ -32,11 +32,18 @@ export function JobForm({ open, onClose }: JobFormProps) {
   const [url, setUrl] = useState("");
   const [salaryMin, setSalaryMin] = useState("");
   const [salaryMax, setSalaryMax] = useState("");
-  const [salaryCurrency, setSalaryCurrency] = useState("USD");
+  const [salaryCurrency, setSalaryCurrency] = useState("PLN");
+  const [salaryPeriod, setSalaryPeriod] = useState<string>("");
+  const [salaryType, setSalaryType] = useState<string>("");
+  const [salaryAsk, setSalaryAsk] = useState("");
+  const [salaryAskCurrency, setSalaryAskCurrency] = useState("EUR");
   const [location, setLocation] = useState("");
   const [format, setFormat] = useState<string>("");
   const [tags, setTags] = useState("");
   const [notes, setNotes] = useState("");
+  const [contractType, setContractType] = useState<string>("");
+  const [source, setSource] = useState<string>("");
+  const [nextStep, setNextStep] = useState("");
 
   function reset() {
     setCompany("");
@@ -45,11 +52,18 @@ export function JobForm({ open, onClose }: JobFormProps) {
     setUrl("");
     setSalaryMin("");
     setSalaryMax("");
-    setSalaryCurrency("USD");
+    setSalaryCurrency("PLN");
+    setSalaryPeriod("");
+    setSalaryType("");
+    setSalaryAsk("");
+    setSalaryAskCurrency("EUR");
     setLocation("");
     setFormat("");
     setTags("");
     setNotes("");
+    setContractType("");
+    setSource("");
+    setNextStep("");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -64,6 +78,10 @@ export function JobForm({ open, onClose }: JobFormProps) {
       salaryMin: salaryMin ? Number(salaryMin) : null,
       salaryMax: salaryMax ? Number(salaryMax) : null,
       salaryCurrency: salaryCurrency || null,
+      salaryPeriod: (salaryPeriod as "monthly" | "yearly") || null,
+      salaryType: (salaryType as "gross" | "net") || null,
+      salaryAsk: salaryAsk ? Number(salaryAsk) : null,
+      salaryAskCurrency: salaryAskCurrency || null,
       location: location || null,
       format: format || null,
       tags: tags
@@ -73,6 +91,9 @@ export function JobForm({ open, onClose }: JobFormProps) {
             .filter(Boolean)
         : [],
       notes: notes || null,
+      contractType: contractType || null,
+      source: source || null,
+      nextStep: nextStep || null,
     });
 
     reset();
@@ -127,7 +148,7 @@ export function JobForm({ open, onClose }: JobFormProps) {
                 type="number"
                 value={salaryMin}
                 onChange={(e) => setSalaryMin(e.target.value)}
-                placeholder="100000"
+                placeholder="10000"
               />
             </div>
             <div>
@@ -136,7 +157,7 @@ export function JobForm({ open, onClose }: JobFormProps) {
                 type="number"
                 value={salaryMax}
                 onChange={(e) => setSalaryMax(e.target.value)}
-                placeholder="150000"
+                placeholder="15000"
               />
             </div>
             <div>
@@ -144,7 +165,58 @@ export function JobForm({ open, onClose }: JobFormProps) {
               <Input
                 value={salaryCurrency}
                 onChange={(e) => setSalaryCurrency(e.target.value)}
-                placeholder="USD"
+                placeholder="PLN"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-medium mb-1 block">Period</label>
+              <Select value={salaryPeriod} onValueChange={(v) => setSalaryPeriod(v ?? "")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Monthly/Yearly" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SALARY_PERIODS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {p.charAt(0).toUpperCase() + p.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block">Type</label>
+              <Select value={salaryType} onValueChange={(v) => setSalaryType(v ?? "")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Gross/Net" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SALARY_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-medium mb-1 block">My Ask</label>
+              <Input
+                type="number"
+                value={salaryAsk}
+                onChange={(e) => setSalaryAsk(e.target.value)}
+                placeholder="5000"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block">Ask Currency</label>
+              <Input
+                value={salaryAskCurrency}
+                onChange={(e) => setSalaryAskCurrency(e.target.value)}
+                placeholder="EUR"
               />
             </div>
           </div>
@@ -153,7 +225,7 @@ export function JobForm({ open, onClose }: JobFormProps) {
             <Input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="New York, NY"
+              placeholder="Warsaw, Poland"
             />
           </div>
           <div>
@@ -170,6 +242,44 @@ export function JobForm({ open, onClose }: JobFormProps) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1 block">Contract Type</label>
+            <Select value={contractType} onValueChange={(v) => setContractType(v ?? "")}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select contract type" />
+              </SelectTrigger>
+              <SelectContent>
+                {CONTRACT_TYPES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c.toUpperCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1 block">Source</label>
+            <Select value={source} onValueChange={(v) => setSource(v ?? "")}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="How did you find this?" />
+              </SelectTrigger>
+              <SelectContent>
+                {JOB_SOURCES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1 block">Next Step</label>
+            <Input
+              value={nextStep}
+              onChange={(e) => setNextStep(e.target.value)}
+              placeholder="e.g. reply to recruiter, schedule interview"
+            />
           </div>
           <div>
             <label className="text-xs font-medium mb-1 block">Tags (comma-separated)</label>

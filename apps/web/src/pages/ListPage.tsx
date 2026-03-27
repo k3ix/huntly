@@ -18,16 +18,28 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function formatSalary(
-  min: number | null,
-  max: number | null,
-  currency: string | null
-): string {
-  if (!min && !max) return "-";
-  const fmt = (n: number) => `${Math.round(n / 1000)}k`;
-  const parts = [min && fmt(min), max && fmt(max)].filter(Boolean).join("-");
-  return `${parts} ${currency ?? ""}`.trim();
+function fmtK(n: number): string {
+  const k = n / 1000;
+  return Number.isInteger(k) ? `${k}k` : `${k.toFixed(1)}k`;
 }
+
+interface SalaryFields {
+  salaryMin: number | null;
+  salaryMax: number | null;
+  salaryCurrency: string | null;
+  salaryPeriod?: string | null;
+  salaryType?: string | null;
+  contractType?: string | null;
+  salaryAsk?: number | null;
+  salaryAskCurrency?: string | null;
+  salaryAskPeriod?: string | null;
+  salaryAskType?: string | null;
+  salaryFinal?: number | null;
+  salaryFinalCurrency?: string | null;
+  salaryNetMonthly?: number | null;
+  salaryNetCurrency?: string | null;
+}
+
 
 export function ListPage() {
   const [search, setSearch] = useState("");
@@ -38,11 +50,16 @@ export function ListPage() {
 
   const { data: allJobs = [] } = useJobs({ search: search || undefined });
 
-  const jobs = allJobs.filter((job: { status: string; format: string | null }) => {
-    if (statusFilter !== "all" && job.status !== statusFilter) return false;
-    if (formatFilter !== "all" && job.format !== formatFilter) return false;
-    return true;
-  });
+  const jobs = allJobs
+    .filter((job: { status: string; format: string | null }) => {
+      if (statusFilter !== "all" && job.status !== statusFilter) return false;
+      if (formatFilter !== "all" && job.format !== formatFilter) return false;
+      return true;
+    })
+    .sort(
+      (a: { updatedAt: string }, b: { updatedAt: string }) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    );
 
   return (
     <div className="flex flex-col h-screen">
@@ -90,7 +107,10 @@ export function ListPage() {
                 <th className="text-left px-3 py-2 font-medium">Company</th>
                 <th className="text-left px-3 py-2 font-medium">Position</th>
                 <th className="text-left px-3 py-2 font-medium">Status</th>
-                <th className="text-left px-3 py-2 font-medium">Salary</th>
+                <th className="text-left px-3 py-2 font-medium">Offer</th>
+                <th className="text-left px-3 py-2 font-medium">Ask</th>
+                <th className="text-left px-3 py-2 font-medium">Final</th>
+                <th className="text-left px-3 py-2 font-medium">Net</th>
                 <th className="text-left px-3 py-2 font-medium">Format</th>
                 <th className="text-left px-3 py-2 font-medium">Tags</th>
                 <th className="text-left px-3 py-2 font-medium">Updated</th>
@@ -98,14 +118,11 @@ export function ListPage() {
             </thead>
             <tbody>
               {jobs.map(
-                (job: {
+                (job: SalaryFields & {
                   id: number;
                   company: string;
                   position: string;
                   status: string;
-                  salaryMin: number | null;
-                  salaryMax: number | null;
-                  salaryCurrency: string | null;
                   format: string | null;
                   updatedAt: string;
                   tags: { id: number; name: string }[];
@@ -118,8 +135,33 @@ export function ListPage() {
                     <td className="px-3 py-2 font-medium">{job.company}</td>
                     <td className="px-3 py-2 text-muted-foreground">{job.position}</td>
                     <td className="px-3 py-2">{capitalize(job.status)}</td>
-                    <td className="px-3 py-2">
-                      {formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency)}
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {(() => {
+                        if (!job.salaryMin && !job.salaryMax) return "-";
+                        const range = job.salaryMin === job.salaryMax
+                          ? fmtK(job.salaryMin!)
+                          : [job.salaryMin && fmtK(job.salaryMin), job.salaryMax && fmtK(job.salaryMax)].filter(Boolean).join("-");
+                        const period = job.salaryPeriod === "monthly" ? "/mo" : job.salaryPeriod === "yearly" ? "/yr" : "";
+                        return [range, job.salaryCurrency, job.salaryType, period, job.contractType?.toUpperCase()].filter(Boolean).join(" ");
+                      })()}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {job.salaryAsk
+                        ? (() => {
+                            const period = job.salaryAskPeriod === "monthly" ? "/mo" : job.salaryAskPeriod === "yearly" ? "/yr" : "";
+                            return [fmtK(job.salaryAsk), job.salaryAskCurrency, job.salaryAskType, period].filter(Boolean).join(" ");
+                          })()
+                        : "-"}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {job.salaryFinal
+                        ? `${fmtK(job.salaryFinal)} ${job.salaryFinalCurrency ?? ""}`
+                        : "-"}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap font-medium">
+                      {job.salaryNetMonthly
+                        ? `~${fmtK(job.salaryNetMonthly)} ${job.salaryNetCurrency ?? "EUR"}/mo`
+                        : "-"}
                     </td>
                     <td className="px-3 py-2">
                       {job.format ? capitalize(job.format) : "-"}
@@ -139,7 +181,7 @@ export function ListPage() {
               )}
               {jobs.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">
+                  <td colSpan={10} className="px-3 py-8 text-center text-muted-foreground">
                     No jobs found.
                   </td>
                 </tr>
