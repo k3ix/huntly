@@ -1,4 +1,4 @@
 import { treaty } from "@elysiajs/eden";
-import type { app } from "@huntly/server/src/app";
+import type { app } from "../../../server/src/app";
 
-export const api = treaty<typeof app>("http://localhost:3000");
+export const client = treaty<typeof app>("http://localhost:3000");

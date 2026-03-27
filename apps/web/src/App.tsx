@@ -1,10 +1,12 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { KanbanPage } from "@/pages/KanbanPage";
+import { ListPage } from "@/pages/ListPage";
 
 export function App() {
   return (
     <Routes>
-      <Route path="/" element={<div className="p-8 text-xl">Huntly - Coming soon</div>} />
-      <Route path="/list" element={<div className="p-8">List view</div>} />
+      <Route path="/" element={<KanbanPage />} />
+      <Route path="/list" element={<ListPage />} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
