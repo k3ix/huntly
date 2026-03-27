@@ -10,5 +10,6 @@ dist/
 .turbo/
 *.log
 .DS_Store
+*.tsbuildinfo
 .claude/
 docs/superpowers/
