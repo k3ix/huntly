@@ -1,20 +1,15 @@
 import { z } from "zod";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { jobs, tags, jobTags } from "../../db/schema";
-import { parseRecruiterMessage } from "../parser";
 
 export const def = {
   name: "add_job",
   description:
-    "Add a new job to the tracker. Accepts raw recruiter message text (parsed automatically) and/or structured fields. Structured fields override parsed values.",
+    "Add a new job to the tracker. Provide structured fields extracted from recruiter messages.",
   schema: {
-    rawText: z
-      .string()
-      .optional()
-      .describe("Raw recruiter message to parse for job details"),
-    company: z.string().optional().describe("Company name (overrides parsed)"),
-    position: z.string().optional().describe("Job position/title (overrides parsed)"),
+    company: z.string().describe("Company name"),
+    position: z.string().describe("Job position/title"),
     url: z.string().url().optional().describe("Job URL"),
     recruiterName: z.string().optional().describe("Recruiter name"),
     status: z
@@ -48,9 +43,8 @@ async function upsertTags(tagNames: string[]): Promise<number[]> {
 }
 
 export async function handler(input: {
-  rawText?: string;
-  company?: string;
-  position?: string;
+  company: string;
+  position: string;
   url?: string;
   recruiterName?: string;
   status?: "contacted" | "reviewing" | "talking" | "interview" | "offer" | "declined" | "ghosted";
@@ -62,34 +56,17 @@ export async function handler(input: {
   notes?: string;
   tags?: string[];
 }) {
-  const parsed = input.rawText ? parseRecruiterMessage(input.rawText) : null;
-
-  const company = input.company ?? parsed?.company ?? null;
-  const position = input.position ?? parsed?.position ?? null;
-
-  if (!company || !position) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `Error: company and position are required. Parsed from text: company=${parsed?.company ?? "null"}, position=${parsed?.position ?? "null"}. Please provide them explicitly.`,
-        },
-      ],
-      isError: true,
-    };
-  }
-
   const jobData = {
-    company,
-    position,
+    company: input.company,
+    position: input.position,
     url: input.url ?? null,
     recruiterName: input.recruiterName ?? null,
     status: (input.status ?? "contacted") as string,
-    salaryMin: input.salaryMin ?? parsed?.salaryMin ?? null,
-    salaryMax: input.salaryMax ?? parsed?.salaryMax ?? null,
-    salaryCurrency: input.salaryCurrency ?? parsed?.salaryCurrency ?? null,
-    location: input.location ?? parsed?.location ?? null,
-    format: input.format ?? (parsed?.format as "remote" | "hybrid" | "office" | null) ?? null,
+    salaryMin: input.salaryMin ?? null,
+    salaryMax: input.salaryMax ?? null,
+    salaryCurrency: input.salaryCurrency ?? null,
+    location: input.location ?? null,
+    format: input.format ?? null,
     notes: input.notes ?? null,
   };
 
@@ -116,7 +93,7 @@ export async function handler(input: {
     content: [
       {
         type: "text" as const,
-        text: `Job added successfully!\n\nID: ${job.id}\nCompany: ${job.company}\nPosition: ${job.position}\nStatus: ${job.status}\nSalary: ${job.salaryMin ? `${job.salaryCurrency ?? ""} ${job.salaryMin}-${job.salaryMax}` : "not specified"}\nFormat: ${job.format ?? "not specified"}\nLocation: ${job.location ?? "not specified"}\nTags: ${job.tags.map((t) => t.name).join(", ") || "none"}`,
+        text: `Job added!\n\nID: ${job.id}\nCompany: ${job.company}\nPosition: ${job.position}\nStatus: ${job.status}\nSalary: ${job.salaryMin ? `${job.salaryCurrency ?? ""} ${job.salaryMin}-${job.salaryMax}` : "not specified"}\nFormat: ${job.format ?? "not specified"}\nLocation: ${job.location ?? "not specified"}\nTags: ${job.tags.map((t) => t.name).join(", ") || "none"}`,
       },
     ],
   };
